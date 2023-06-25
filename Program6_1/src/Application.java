@@ -4,63 +4,94 @@ import java.util.Deque;
 import java.util.LinkedList;
 
 public class Application {
+    public static double parse(String rpnString) {
+        Deque<Double> stack = new LinkedList<>();
 
-  private static final String DELIMITER = " ";
+        String[] tokens = rpnString.split(" ");
 
-  public static double parse(String rpnString) {
-    if (rpnString == null || rpnString.isEmpty()) {
-      throw new RPNParserException();
-    }
-    Deque<Double> stack = new LinkedList<Double>();
-    String[] tokens = rpnString.split(DELIMITER);
-    for (int i = 0; i < tokens.length; i++) {
-      if (isNumber(tokens[i])) {
-        stack.push(new Double(tokens[i]));
-      } else if (isOperator(tokens[i])) {
-        if (stack.size() < 2) {
-          throw new RPNParserException();
-        }
-        switch (tokens[i]) {
-          case "+":
-            stack.push(new Double(stack.pop() + stack.pop()));
-            break;
-          case "-":
-            stack.push(new Double(-stack.pop() + stack.pop()));
-            break;
-          case "/":
-            if (stack.peek() == 0) {
-              throw new ArithmeticException();
+        for (String token : tokens) {
+            if (isNumber(token)) {
+                stack.push(Double.parseDouble(token));
+            } else if (isOperator(token)) {
+                if (stack.size() < 2) {
+                    throw new RPNParserException();
+                }
+
+                double operand2 = stack.pop();
+                double operand1 = stack.pop();
+                double result = performOperation(token, operand1, operand2);
+                stack.push(result);
+            } else {
+                throw new RPNParserException();
             }
-            stack.push(new Double(1 / stack.pop() * stack.pop()));
-            break;
-          case "*":
-            stack.push(new Double(stack.pop() * stack.pop()));
-            break;
         }
-      } else {
-        throw new RPNParserException();
-      }
-    }
-    if (stack.size() != 1) {
-      throw new RPNParserException();
-    }
-    return stack.pop();
-  }
 
-  private static boolean isNumber(String string) {
-    if (string == null) return false;
-    return string.matches("^-?\\d+(\\.\\d+)?$");
-  }
+        if (stack.size() != 1) {
+            throw new RPNParserException();
+        }
 
-  private static boolean isOperator(String string) {
-    if (string == null) return false;
-    return string.matches("[+-/*]{1}");
-  }
-
-  public static void main(String[] args) {
-    if (args == null || args.length == 0) {
-      throw new RPNParserException();
+        return stack.pop();
     }
-    System.out.println(parse(args[0]));
-  }
+
+    private static boolean isNumber(String token) {
+        try {
+            Double.parseDouble(token);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
+    private static boolean isOperator(String token) {
+        return token.equals("+") || token.equals("-") || token.equals("*") || token.equals("/");
+    }
+
+    private static double performOperation(String operator, double operand1, double operand2) {
+        switch (operator) {
+            case "+":
+                return operand1 + operand2;
+            case "-":
+                return operand1 - operand2;
+            case "*":
+                return operand1 * operand2;
+            case "/":
+                if (operand2 == 0) {
+                    throw new ArithmeticException();
+                }
+                return operand1 / operand2;
+            default:
+                throw new RPNParserException();
+        }
+    }
+
+    public static void main(String[] args) {
+        String rpnString = "10 20 + 30 40 + *";
+        double result = parse(rpnString);
+        System.out.println(result);
+
+        rpnString = "10 20 30.0 * +";
+        result = parse(rpnString);
+        System.out.println(result);
+
+        rpnString = "10 20 30 () +";
+        try {
+            result = parse(rpnString);
+        } catch (RPNParserException e) {
+            System.out.println("RPNParserException");
+        }
+
+        rpnString = "10 20 Е * +";
+        try {
+            result = parse(rpnString);
+        } catch (RPNParserException e) {
+            System.out.println("RPNParserException");
+        }
+
+        rpnString = "0 0 /";
+        try {
+            result = parse(rpnString);
+        } catch (ArithmeticException e) {
+            System.out.println("ArithmeticException");
+        }
+    }
 }
